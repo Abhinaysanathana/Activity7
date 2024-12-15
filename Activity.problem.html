@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Scatterplot with Interactive Brushing</title>
+    <style>
+        /* General styling for the page */
+        body {
+            font-family: sans-serif;
+        }
+
+        svg {
+            width: 40vw;
+            height: 40vw;
+        }
+
+        /* Flex container for scatter plots */
+        div {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        /* Styling for the selected data list container */
+        .list-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            width: 50vw;
+            padding: 20px;
+            background-color: #f3f3f3;
+            border-left: 1px solid #ccc;
+            overflow-y: auto;
+        }
+
+        /* List container header */
+        .list-container h3 {
+            font-size: 18px;
+            color: #444;
+            margin-bottom: 10px;
+        }
+
+        /* Styling for the list of selected data */
+        #selected-list {
+            padding: 10px;
+            list-style-type: none;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            max-height: 100%;
+            overflow-y: auto;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            flex-grow: 1;
+        }
+
+        /* Styling individual list items */
+        #selected-list li {
+            padding: 10px;
+            margin: 0;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+            color: #555;
+        }
+
+        #selected-list li:last-child {
+            border-bottom: none;
+        }
+
+        ul {
+            margin: 0 100px;
+        }
+    </style>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="js/scatterplot.problem.js"></script>
+    <link rel="stylesheet" href="styles/style.css">
+</head>
+<body>
+<div>
+    <svg viewBox="0 0 1000 1000" id="scatterplot1"></svg>
+    <svg viewBox="0 0 1000 1000" id="scatterplot2"></svg>
+</div>
+<div>
+    <ul id="selected-list"></ul>
+</div>
+
+<script>
+    // Load CSV data and parse numeric fields
+    d3.csv("./data/car_sample_data.csv", row => ({
+        ...row,
+        Price: +row.Price,
+        MPG: +row.MPG,
+        Weight: +row.Weight,
+        Horsepower: +row.Horsepower,
+        EngineSize: +row.EngineSizeCI
+    })).then(dataset => {
+        // Render the first scatterplot
+        scatter_plot(
+            data = dataset,
+            "#scatterplot1",
+            title = "MPG vs Price",
+            xCol = "Price",
+            yCol = "MPG",
+            rCol = "Weight",
+            legend = [],
+            colorCol = "Country",
+            margin = 150
+        );
+
+        // Render the second scatterplot
+        scatter_plot(
+            data = dataset,
+            "#scatterplot2",
+            title = "MPG vs Engine Size",
+            xCol = "Engine Size",
+            yCol = "MPG",
+            rCol = "Weight",
+            legend = [],
+            colorCol = "Country",
+            margin = 150
+        );
+
+        // Update the selected models list when brushing occurs
+        document.addEventListener("mousemove", () => {
+            const listElement = d3.select("#selected-list");
+            const selectedPoints = Array.from(document.querySelectorAll(".selected"));
+            const selectedModels = [...new Set(selectedPoints.map(point => point.getAttribute("data-model")))];
+
+            // Clear the list and populate with selected models
+            listElement.selectAll("li").remove();
+            if (selectedModels.length > 0) {
+                listElement.selectAll(".list-item")
+                    .data(selectedModels)
+                    .enter()
+                    .append("li")
+                    .attr("class", "list-item")
+                    .text(model => {
+                        const match = dataset.find(entry => entry.Model === model);
+                        return match
+                            ? `${match.Model} - ${match.Type}`
+                            : `Model: ${model} (Details unavailable)`;
+                    });
+            }
+        });
+    });
+</script>
+</body>
+</html>
